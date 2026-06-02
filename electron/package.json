@@ -4,13 +4,40 @@
   "description": "Santé POS desktop shell",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --win"
   },
   "engines": {
     "node": ">=18",
     "electron": ">=22"
   },
   "devDependencies": {
-    "electron": "^31.0.0"
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "swiss.sensopro.sante",
+    "productName": "Santé",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend/dist/sante-backend.exe",
+        "to": "backend/"
+      },
+      {
+        "from": "../frontend/dist/",
+        "to": "frontend/"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    }
   }
 }
