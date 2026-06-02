@@ -202,3 +202,20 @@ sante/
 - TypeScript vs JavaScript: **TypeScript** (default; not objected to).
 - UI library: **Mantine** (default; alt: Ant Design).
 - DB layer: **SQLAlchemy ORM** (default; alt: raw `sqlite3`).
+
+## 13. Phase 1 inputs (from Phase 0 review)
+
+Carried over from the Phase 0 final review — to address when writing the Phase 1 plan:
+
+- **Decide migrations strategy BEFORE the first model lands:** Alembic vs.
+  `Base.metadata.create_all` on startup. Recommendation: Alembic (retrofitting
+  migrations after shipping `create_all` is painful).
+- Type `get_db` as `Generator[Session, None, None]` so endpoint `Depends(get_db)`
+  signatures type-check cleanly.
+- Extract a shared `request()` helper in `frontend/src/api/client.ts` (base URL, JSON
+  parse, error normalization, future auth header) + add zod schemas before the second
+  endpoint, rather than per-function `fetch`.
+- Broaden dev CORS to also allow `127.0.0.1:5173` (or use `allow_origin_regex` for
+  localhost) so `--host`/`127.0.0.1` dev access isn't rejected.
+- (Optional) Harden Electron backend teardown with a process-group kill + SIGKILL
+  fallback for the hung-backend edge case.
