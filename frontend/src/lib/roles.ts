@@ -13,11 +13,12 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "debts", label: "Debts" },
   { key: "reports", label: "Reports" },
   { key: "users", label: "Users" },
+  { key: "settings", label: "Settings" },
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, string[]> = {
-  admin:    ["dashboard","inventory","products","recipes","sales","history","debts","reports","users"],
-  manager:  ["dashboard","inventory","products","recipes","sales","history","debts","reports","users"],
+  admin:    ["dashboard","inventory","products","recipes","sales","history","debts","reports","users","settings"],
+  manager:  ["dashboard","inventory","products","recipes","sales","history","debts","reports","users","settings"],
   salesman: ["dashboard","sales","history","debts","reports"],
   stockman: ["inventory"],
 };
