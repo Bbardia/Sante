@@ -345,6 +345,18 @@ export async function checkout(req: {
   });
 }
 
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+export interface Dashboard {
+  today: { revenue: number; sales_count: number };
+  top_products: { product: string; qty: number }[];
+  low_stock: { name: string; qty: number; unit: string; reorder_level: number }[];
+}
+
+export async function getDashboard(): Promise<Dashboard> {
+  return request<Dashboard>("/dashboard");
+}
+
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
 export interface ReportRange {
