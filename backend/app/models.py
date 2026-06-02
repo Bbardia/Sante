@@ -44,3 +44,38 @@ class Recipe(Base):
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
     ingredient_id: Mapped[int] = mapped_column(ForeignKey("inventory.id"))
     qty: Mapped[float] = mapped_column(Float)
+
+
+class Customer(Base):
+    __tablename__ = "customers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, unique=True, index=True)
+    discount: Mapped[float] = mapped_column(Float, default=0)  # percent
+
+
+class Sale(Base):
+    __tablename__ = "sales"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    customer_id: Mapped[int | None] = mapped_column(
+        ForeignKey("customers.id"), nullable=True
+    )
+    subtotal: Mapped[float] = mapped_column(Float)
+    discount_pct: Mapped[float] = mapped_column(Float)
+    discount_amount: Mapped[float] = mapped_column(Float)
+    total: Mapped[float] = mapped_column(Float)
+    payment_status: Mapped[str] = mapped_column(String)  # Paid|Unpaid
+
+
+class SaleItem(Base):
+    __tablename__ = "sale_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sale_id: Mapped[int] = mapped_column(ForeignKey("sales.id"))
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    product_name: Mapped[str] = mapped_column(String)  # snapshot
+    qty: Mapped[float] = mapped_column(Float)
+    unit_price: Mapped[float] = mapped_column(Float)  # snapshot
+    line_total: Mapped[float] = mapped_column(Float)
