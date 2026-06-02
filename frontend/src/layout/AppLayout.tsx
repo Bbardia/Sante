@@ -17,6 +17,7 @@ import RecipesPage from "../pages/RecipesPage";
 import SalesPage from "../pages/SalesPage";
 import HistoryPage from "../pages/HistoryPage";
 import DebtsPage from "../pages/DebtsPage";
+import ReportsPage from "../pages/ReportsPage";
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -43,6 +44,7 @@ export default function AppLayout() {
     if (activeItem.key === "sales") return <SalesPage />;
     if (activeItem.key === "history") return <HistoryPage />;
     if (activeItem.key === "debts") return <DebtsPage />;
+    if (activeItem.key === "reports") return <ReportsPage />;
 
     return (
       <>
