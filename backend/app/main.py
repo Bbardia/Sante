@@ -13,6 +13,7 @@ from app.routers.recipes import router as recipes_router
 from app.routers.customers import router as customers_router
 from app.routers.sales import router as sales_router
 from app.routers.debts import router as debts_router
+from app.routers.reports import router as reports_router
 
 
 @asynccontextmanager
@@ -51,6 +52,7 @@ app.include_router(recipes_router)
 app.include_router(customers_router)
 app.include_router(sales_router)
 app.include_router(debts_router)
+app.include_router(reports_router)
 
 
 @app.get("/health")
