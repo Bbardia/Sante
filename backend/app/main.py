@@ -7,6 +7,9 @@ import app.models  # noqa: F401 – registers all ORM models with Base
 from app.db import SessionLocal, engine, Base
 from app.routers.auth import router as auth_router
 from app.routers.users import router as users_router
+from app.routers.inventory import router as inventory_router
+from app.routers.products import router as products_router
+from app.routers.recipes import router as recipes_router
 
 
 @asynccontextmanager
@@ -39,6 +42,9 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(inventory_router)
+app.include_router(products_router)
+app.include_router(recipes_router)
 
 
 @app.get("/health")
