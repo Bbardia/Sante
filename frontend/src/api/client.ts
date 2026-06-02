@@ -106,3 +106,123 @@ export async function updateUser(id: number, data: Partial<{ username: string; p
 export async function deleteUser(id: number): Promise<void> {
   return request<void>(`/users/${id}`, { method: "DELETE" });
 }
+
+// ─── Inventory ────────────────────────────────────────────────────────────────
+
+export interface Inventory {
+  id: number;
+  name: string;
+  qty: number;
+  unit: string;
+  total_value: number;
+  avg_price: number;
+  reorder_level: number;
+}
+
+export async function listInventory(search?: string): Promise<Inventory[]> {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : "";
+  return request<Inventory[]>(`/inventory${qs}`);
+}
+
+export async function addStock(data: {
+  name: string;
+  qty: number;
+  unit: string;
+  price: number;
+  reorder_level?: number;
+}): Promise<Inventory> {
+  return request<Inventory>("/inventory", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateInventory(
+  id: number,
+  data: { name?: string; unit?: string; reorder_level?: number }
+): Promise<Inventory> {
+  return request<Inventory>(`/inventory/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteInventory(id: number): Promise<void> {
+  return request<void>(`/inventory/${id}`, { method: "DELETE" });
+}
+
+export async function resetInventory(): Promise<{ reset: number }> {
+  return request<{ reset: number }>("/inventory/reset", { method: "POST" });
+}
+
+// ─── Products ─────────────────────────────────────────────────────────────────
+
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+}
+
+export async function listProducts(search?: string): Promise<Product[]> {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : "";
+  return request<Product[]>(`/products${qs}`);
+}
+
+export async function createProduct(data: { name: string; price: number }): Promise<Product> {
+  return request<Product>("/products", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProduct(
+  id: number,
+  data: { name?: string; price?: number }
+): Promise<Product> {
+  return request<Product>(`/products/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProduct(id: number): Promise<void> {
+  return request<void>(`/products/${id}`, { method: "DELETE" });
+}
+
+// ─── Recipes ──────────────────────────────────────────────────────────────────
+
+export interface Recipe {
+  id: number;
+  product_id: number;
+  product_name: string;
+  ingredient_id: number;
+  ingredient_name: string;
+  qty: number;
+}
+
+export async function listRecipes(productId?: number): Promise<Recipe[]> {
+  const qs = productId != null ? `?product_id=${productId}` : "";
+  return request<Recipe[]>(`/recipes${qs}`);
+}
+
+export async function createRecipe(data: {
+  product_id: number;
+  ingredient_id: number;
+  qty: number;
+}): Promise<Recipe> {
+  return request<Recipe>("/recipes", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateRecipe(id: number, data: { qty: number }): Promise<Recipe> {
+  return request<Recipe>(`/recipes/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteRecipe(id: number): Promise<void> {
+  return request<void>(`/recipes/${id}`, { method: "DELETE" });
+}

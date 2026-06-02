@@ -11,6 +11,9 @@ import {
 import { useAuth } from "../auth/AuthContext";
 import { NAV_ITEMS, ROLE_PERMISSIONS } from "../lib/roles";
 import UsersPage from "../pages/UsersPage";
+import InventoryPage from "../pages/InventoryPage";
+import ProductsPage from "../pages/ProductsPage";
+import RecipesPage from "../pages/RecipesPage";
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -30,9 +33,10 @@ export default function AppLayout() {
     const activeItem = allowedItems.find((i) => i.key === activeKey);
     if (!activeItem) return <Text c="dimmed">Nothing to show.</Text>;
 
-    if (activeItem.key === "users") {
-      return <UsersPage />;
-    }
+    if (activeItem.key === "users") return <UsersPage />;
+    if (activeItem.key === "inventory") return <InventoryPage />;
+    if (activeItem.key === "products") return <ProductsPage />;
+    if (activeItem.key === "recipes") return <RecipesPage />;
 
     return (
       <>
