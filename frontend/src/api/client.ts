@@ -266,6 +266,47 @@ export async function deleteCustomer(id: number): Promise<void> {
   return request<void>(`/customers/${id}`, { method: "DELETE" });
 }
 
+// ─── Sales History & Debts ────────────────────────────────────────────────────
+
+export interface SaleSummary {
+  id: number;
+  created_at: string;
+  customer_name: string | null;
+  total: number;
+  payment_status: string;
+  item_count: number;
+}
+
+export async function listSales(params?: {
+  search?: string;
+  start?: string;
+  end?: string;
+}): Promise<SaleSummary[]> {
+  const qs = params
+    ? (() => {
+        const p = new URLSearchParams();
+        if (params.search) p.set("search", params.search);
+        if (params.start) p.set("start", params.start);
+        if (params.end) p.set("end", params.end);
+        const s = p.toString();
+        return s ? `?${s}` : "";
+      })()
+    : "";
+  return request<SaleSummary[]>(`/sales${qs}`);
+}
+
+export async function getReceipt(id: number): Promise<Receipt> {
+  return request<Receipt>(`/sales/${id}`);
+}
+
+export async function listDebts(): Promise<SaleSummary[]> {
+  return request<SaleSummary[]>("/debts");
+}
+
+export async function payDebt(saleId: number): Promise<SaleSummary> {
+  return request<SaleSummary>(`/debts/${saleId}/pay`, { method: "POST" });
+}
+
 // ─── Sales / Checkout ─────────────────────────────────────────────────────────
 
 export interface ReceiptItem {
