@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AppShell,
   Title,
@@ -17,9 +17,14 @@ export default function AppLayout() {
 
   const allowedKeys = user ? ROLE_PERMISSIONS[user.role] : [];
   const allowedItems = NAV_ITEMS.filter((item) => allowedKeys.includes(item.key));
-  const defaultKey = allowedItems.length > 0 ? allowedItems[0].key : "";
 
-  const [activeKey, setActiveKey] = useState(defaultKey);
+  const [activeKey, setActiveKey] = useState(() => allowedItems[0]?.key ?? "");
+
+  useEffect(() => {
+    if (!allowedItems.some((item) => item.key === activeKey)) {
+      setActiveKey(allowedItems[0]?.key ?? "");
+    }
+  }, [allowedItems]);
 
   function renderContent() {
     const activeItem = allowedItems.find((i) => i.key === activeKey);

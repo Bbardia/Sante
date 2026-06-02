@@ -35,10 +35,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
   if (!res.ok) {
     let detail = res.statusText;
-    try { const body = await res.json(); detail = body.detail ?? detail; } catch { /* ignore */ }
+    try {
+      const body = await res.json();
+      if (typeof body.detail === "string") detail = body.detail;
+      else if (Array.isArray(body.detail)) detail = body.detail.map((d: { msg?: string }) => d.msg ?? "").filter(Boolean).join("; ") || detail;
+    } catch { /* ignore */ }
     throw new ApiError(res.status, detail);
   }
-  if (res.status === 204) return undefined as T;
+  if (res.status === 204) return undefined as unknown as T;
   return res.json() as Promise<T>;
 }
 

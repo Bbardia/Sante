@@ -28,6 +28,7 @@ import {
 } from "../api/client";
 import type { Role } from "../lib/roles";
 
+// Parity with the legacy app: new users are manager/salesman/stockman; the bootstrap admin is seeded, not created here.
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "manager", label: "Manager" },
   { value: "salesman", label: "Salesman" },
@@ -63,7 +64,7 @@ export default function UsersPage() {
       username: (v) => (v.trim().length === 0 ? "Username is required" : null),
       password: (v) => {
         // Password required on create; optional on edit
-        if (!editingUser && v.length === 0) return "Password is required";
+        if (!editingUser && v.trim().length === 0) return "Password is required";
         return null;
       },
       role: (v) => (v === "" ? "Role is required" : null),
