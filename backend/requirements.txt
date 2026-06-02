@@ -1,10 +1,10 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-passlib[bcrypt]
-pandas
-openpyxl
-python-multipart
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.29
+sqlalchemy>=2.0,<3.0
+passlib[bcrypt]>=1.7,<2.0
+pandas>=2.0
+openpyxl>=3.1
+python-multipart>=0.0.9
 # dev / test
-pytest
-httpx
+pytest>=8.0
+httpx>=0.27
