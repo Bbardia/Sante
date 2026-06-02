@@ -1,0 +1,15 @@
+# Santé — Python dependencies
+#
+# Install with:   pip install -r requirements.txt
+#
+# Third-party packages only. The app also uses these STANDARD-LIBRARY modules
+# (no pip install needed): tkinter, sqlite3, datetime, os, sys, platform.
+#
+# NOTE on tkinter: it ships with CPython but needs the system Tk binding.
+#   - macOS (Homebrew):  brew install python-tk
+#   - Debian/Ubuntu:     sudo apt install python3-tk
+#   - Windows:           included with the python.org installer
+# If `import tkinter` fails with "No module named '_tkinter'", install the above.
+
+pandas>=2.0          # used for the Reports tab and Excel export
+openpyxl>=3.1        # used to write .xlsx reports with embedded charts
