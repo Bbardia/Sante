@@ -99,6 +99,15 @@ class RecipeUpdate(BaseModel):
     qty: float
 
 
+class RecipeSetItem(BaseModel):
+    ingredient_id: int
+    qty: float
+
+
+class RecipeSet(BaseModel):
+    items: list[RecipeSetItem]
+
+
 class LoginRequest(BaseModel):
     username: str
     password: str
