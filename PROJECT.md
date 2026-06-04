@@ -59,6 +59,12 @@ Closing the window stops the backend sidecar.
 cd backend && .venv/bin/python -m pytest -v
 ```
 
+## Run frontend tests
+```bash
+cd frontend && npm test                # Vitest + React Testing Library (jsdom)
+cd frontend && npm run test:coverage   # with a coverage report
+```
+
 ## Notes
 - Ports: backend **8756**, Vite dev **5173**. If `npm start` reports the backend
   failed, check nothing else is using 8756 (`lsof -i :8756`).

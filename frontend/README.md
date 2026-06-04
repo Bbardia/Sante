@@ -1,4 +1,23 @@
-# React + TypeScript + Vite
+# Santé frontend (React + TypeScript + Vite)
+
+## Testing
+
+Unit/component tests run on **Vitest** + **React Testing Library** (jsdom). Tests live
+next to the code they cover as `*.test.ts` / `*.test.tsx`.
+
+```bash
+npm test            # run once (CI mode)
+npm run test:watch  # watch mode
+npm run test:coverage  # with a v8 coverage report
+```
+
+Shared setup lives in `src/test/`: `setup.ts` registers jest-dom matchers and the
+jsdom polyfills Mantine/Recharts need (`matchMedia`, `ResizeObserver`,
+`scrollIntoView`); `utils.tsx` exports `renderWithProviders`, which wraps a component
+in `MantineProvider` + a fresh `QueryClientProvider` (retries off) the way the real app
+mounts it. Test files are excluded from the production `tsc -b` build.
+
+---
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
