@@ -1,140 +1,177 @@
 # Santé
 
-A desktop **point-of-sale (POS) and inventory management** application for a small
-food/beverage business. It is a single-file Python program built with **Tkinter**
-(GUI) and **SQLite** (local database), with **pandas** + **openpyxl** powering
-report generation and Excel export.
+A **point-of-sale (POS) and inventory management** application for a small
+food/beverage business. Modern rewrite of the original single-file Tkinter app:
+a **React + TypeScript** frontend, a **FastAPI** backend, a **SQLite** database,
+packaged as an **Electron** desktop app.
 
 Currency is displayed in **Toman**.
 
+> The legacy single-file app still lives at [`Sante.py`](Sante.py) for reference
+> until data migration is fully retired. **It is not the app you run** — use the
+> instructions below.
+
 ---
 
-## Features
+## Quick start (one command)
 
-The app is organized as a tabbed window. Tabs are shown/hidden based on the
-logged-in user's role (see [Roles & permissions](#roles--permissions)).
+A [`Makefile`](Makefile) runs the whole stack. You need **Python 3**, **Node.js**,
+and **npm** installed.
 
-| Tab | What it does |
-|-----|--------------|
-| **Inventory** | Add/delete ingredients with quantity, unit, and price. Tracks a running **average price** per ingredient (total value ÷ quantity). Supports a full reset of quantities/values. |
-| **Products** | Define sellable products and their prices. |
-| **Recipes** | Link a product to the ingredients (and amounts) it consumes — a bill of materials. Selling a product automatically deducts its recipe ingredients from inventory. |
-| **Sales** | Build a cart, attach a customer, apply a discount, and check out. Supports **"Pay Later (Debt)"** for credit sales and prints a receipt to the system printer. |
-| **Sales History** | Read-only list of all sales with total revenue. |
-| **Debts** | Lists unpaid sales; mark a debt as **Paid**. |
-| **Reports** | Daily / Weekly / Monthly / Yearly summaries (revenue, paid vs. unpaid, inventory consumption, customer breakdown, unpaid bills) with **Excel export** including bar/pie charts. |
-| **Users** | Create/update/delete users and assign roles. |
+```bash
+make setup     # one-time: create the Python venv, install backend + frontend deps
+make seed      # optional: reset the DB and load demo data (sample inventory/sales)
+make demo      # build the UI and serve the whole app on one port
+```
+
+Then open **http://localhost:8756** and log in with **`admin` / `admin`**.
+
+Run `make help` to see every command:
+
+| Command | What it does |
+|---|---|
+| `make setup` | One-time install: Python venv + backend deps + `npm install` the frontend |
+| `make dev` | Run backend (`:8756`) **and** the Vite hot-reload dev server (`:5173`) together — best for development |
+| `make demo` | Build the SPA and have the backend serve it on **one port** → `http://localhost:8756` — best for showing the app |
+| `make demo-lan` | Same as `demo`, but reachable from **other devices on your WiFi** (phones/tablets); prints the LAN URL |
+| `make seed` | Reset the dev database and load realistic demo data |
+| `make test` | Run backend (pytest) + frontend (vitest) test suites |
+| `make build` | Build the frontend into `frontend/dist` |
+| `make clean` | Remove the venv, `node_modules`, and build output |
+
+- **`make dev`** is the developer flow: the frontend at `:5173` calls the backend
+  at `:8756` with hot reload. Ctrl-C stops both.
+- **`make demo` / `make demo-lan`** are the demo flow: the frontend is built and
+  served by the backend itself, so everything lives on a single URL with no CORS
+  setup — ideal for showing people the app on this machine or across the network.
 
 ---
 
 ## Tech stack
 
-- **Python 3** (developed against CPython 3.14)
-- **Tkinter / ttk** — desktop GUI
-- **SQLite** (`sqlite3`) — local file database, auto-created as `database.db`
-- **pandas** — tabular data for reports/export
-- **openpyxl** — `.xlsx` writing with embedded charts
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 19 + TypeScript + Vite + [Mantine](https://mantine.dev) UI + TanStack Query + Recharts (dev port **5173**) |
+| **Backend** | FastAPI + SQLAlchemy 2 + SQLite, JWT auth with **bcrypt-hashed** passwords, openpyxl for Excel export (port **8756**) |
+| **Desktop** | Electron shell that spawns the backend and loads the UI |
+| **Tests** | pytest (backend) · Vitest + React Testing Library (frontend) |
+
+The database lives at `backend/database.db` (auto-created on first run, **not**
+committed).
 
 ---
 
-## Requirements & installation
+## Features
 
-### 1. Python 3
-Ensure Python 3 is installed: `python3 --version`
+The UI is a single-page app with role-gated navigation.
 
-### 2. System Tk (for the GUI)
-Tkinter ships with CPython but relies on the system **Tk** binding. If
-`python3 -c "import tkinter"` fails with `No module named '_tkinter'`, install it:
-
-- **macOS (Homebrew):** `brew install python-tk`
-- **Debian/Ubuntu:** `sudo apt install python3-tk`
-- **Windows:** included with the official python.org installer
-
-### 3. Python packages
-```bash
-pip install -r requirements.txt
-```
-This installs `pandas` and `openpyxl`. (Excel export will fail until `openpyxl`
-is installed.)
-
----
-
-## Running the app
-
-```bash
-python3 Sante.py
-```
-
-On first launch the app:
-1. Creates `database.db` next to the script (or next to the executable if frozen
-   with PyInstaller).
-2. Seeds a default admin account.
-3. Shows a **login window**.
-
-### Default login
-| Username | Password | Role  |
-|----------|----------|-------|
-| `admin`  | `admin`  | admin |
-
-> ⚠️ **Security:** the default credentials are `admin` / `admin`, and passwords are
-> stored in the database **in plain text**. Change the admin password and add real
-> users before any real-world use. After 3 failed login attempts the app closes.
+| Page | What it does |
+|------|--------------|
+| **Dashboard** | Today's revenue and sales count, top products chart, low-stock alerts. |
+| **Inventory** | Add stock (tracks a weighted **average price** per ingredient), edit, delete, reset, and set low-stock reorder levels. |
+| **Products** | Define sellable products and their prices. |
+| **Recipes** | Link a product to the ingredients (and amounts) it consumes — a bill of materials. Checkout deducts a product's recipe from inventory. |
+| **Sales** | Build a cart, attach a customer (with discount), apply a discount, and check out. Supports **Pay Later (debt)** and a printable receipt. Checkout is **stock-checked and transactional** — it rejects oversell. |
+| **Sales History** | Search + date-filtered list of all sales. |
+| **Debts** | Lists unpaid sales; mark a debt as **Paid**. |
+| **Reports** | Daily / Weekly / Monthly / Yearly + custom range summaries with in-app tables and **Excel export** (with charts). |
+| **Users** | Create/update/delete users and assign roles (admin only). |
+| **Settings** | Download a database backup and restore from one (with an automatic safety backup). |
 
 ---
 
 ## Roles & permissions
 
-Tab access is controlled by role:
+Navigation is gated by the logged-in user's role:
 
-| Role | Accessible tabs |
+| Role | Accessible pages |
 |------|-----------------|
-| **admin** / **manager** | Inventory, Products, Recipes, Sales, Reports, Debts, Users |
-| **salesman** | Sales, Reports, Debts |
+| **admin** | All pages (incl. Users + Settings) |
+| **manager** | Dashboard, Inventory, Products, Recipes, Sales, Sales History, Debts, Reports |
+| **salesman** | Dashboard, Sales, Sales History, Debts, Reports |
 | **stockman** | Inventory |
 
----
-
-## Data & files
-
-| File | Purpose |
-|------|---------|
-| `Sante.py` | The entire application. |
-| `database.db` | SQLite database (auto-created). Holds inventory, products, recipes, sales, customers, and users. |
-| `receipt_to_print.txt` | Last generated receipt, written before being sent to the printer. |
-| `*.xlsx` | Exported reports (you choose the path via a save dialog). |
-
-> 💾 **Backups:** all business data lives in `database.db`. Back it up regularly.
+> ⚠️ **Security:** the default credentials are `admin` / `admin`. Passwords are
+> bcrypt-hashed and auth uses JWTs, but you should still change the admin password
+> and create real users before any real-world use. The app is built for a trusted
+> local network, not public internet exposure.
 
 ---
 
-## Notes & known limitations
+## Manual setup (without `make`)
 
-- **Single-file, global-state design.** The UI, business logic, and database access
-  all live in `Sante.py` using module-level globals. It works but is hard to test
-  and extend.
-- **Plain-text passwords** (no hashing).
-- **Schema is created/migrated inline** via `CREATE TABLE IF NOT EXISTS` and
-  best-effort `ALTER TABLE ... ADD COLUMN` wrapped in try/except.
-- **Recipe consumption** can drive inventory negative — there is no stock check at
-  checkout.
-- **Printing** uses the OS default printer (`os.startfile(..., "print")` on Windows,
-  `lpr` on macOS/Linux).
-- The Reports tab references a `sales_discount_entry` widget and a `recipes.product_id`
-  column that are not defined in this file; those code paths are guarded with
-  try/except or `globals()` checks, so they fail gracefully.
+<details>
+<summary>If you prefer to run the pieces yourself</summary>
+
+```bash
+# backend
+cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && cd ..
+# frontend
+cd frontend && npm install && cd ..
+```
+
+Run in development (two terminals):
+
+```bash
+# Terminal 1 — backend
+cd backend && .venv/bin/python run_server.py        # http://localhost:8756
+
+# Terminal 2 — frontend dev server
+cd frontend && npm run dev                           # http://localhost:5173
+```
+
+Run the desktop (Electron) shell, which spawns the backend automatically:
+
+```bash
+cd electron && npm install && npm start
+```
+
+</details>
+
+See [PROJECT.md](PROJECT.md) for the full developer guide and
+[BUILD-WINDOWS.md](BUILD-WINDOWS.md) for packaging a Windows installer
+(PyInstaller backend + electron-builder).
+
+---
+
+## Tests
+
+```bash
+make test                              # both suites
+# or individually:
+cd backend  && .venv/bin/python -m pytest
+cd frontend && npm test
+```
+
+---
+
+## Migrating data from the legacy app
+
+Import data from an old Tkinter-era `database.db`:
+
+```bash
+cd backend && .venv/bin/python -m app.migrate_legacy /path/to/old/database.db
+```
 
 ---
 
 ## Project layout
 
 ```
-Behrad/
-├── Sante.py            # the application
-├── requirements.txt    # Python dependencies
-├── README.md           # this file
-├── database.db         # created on first run (not committed)
-└── .claude/            # Claude Code workspace config (see .claude/CLAUDE.md)
-    ├── CLAUDE.md        # project context loaded each session
-    ├── plans/          # implementation plans (Superpowers writing-plans skill)
-    └── skills/         # project-local skills
+Sante/
+├── Makefile            # one-command runner (setup / dev / demo / seed / test)
+├── backend/            # FastAPI + SQLAlchemy + SQLite (port 8756)
+│   ├── app/            #   routers, models, services, security
+│   ├── tests/          #   pytest suite
+│   ├── seed_demo.py    #   reset + seed demo data
+│   └── run_server.py   #   uvicorn entrypoint
+├── frontend/           # React + TypeScript + Vite + Mantine (dev port 5173)
+│   └── src/            #   pages, api client, auth, components
+├── electron/           # Electron shell that spawns the backend + loads the UI
+├── Sante.py            # legacy single-file Tkinter app (reference only)
+├── PROJECT.md          # full developer guide
+└── BUILD-WINDOWS.md    # Windows packaging instructions
 ```
+
+> 💾 **Backups:** all business data lives in `backend/database.db`. Back it up
+> regularly, or use the in-app **Settings → Backup**.
