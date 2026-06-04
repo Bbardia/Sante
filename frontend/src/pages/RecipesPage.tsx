@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -7,47 +7,40 @@ import {
   NumberInput,
   Button,
   Group,
-  Table,
   Modal,
   Select,
   Stack,
   ActionIcon,
   Text,
   Box,
+  Card,
+  SimpleGrid,
 } from "@mantine/core";
 import {
   listRecipes,
-  createRecipe,
-  updateRecipe,
-  deleteRecipe,
   listProducts,
   listInventory,
+  setProductRecipe,
   ApiError,
-  type Recipe,
+  type Product,
 } from "../api/client";
 
-interface AddFormValues {
-  product_id: string;
+interface RowType {
   ingredient_id: string;
   qty: number | string;
 }
 
-interface EditFormValues {
-  qty: number | string;
+interface EditorFormValues {
+  rows: RowType[];
 }
 
 export default function RecipesPage() {
-  const [filterProductId, setFilterProductId] = useState<string | null>(null);
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
-  const [confirmDeleteRecipe, setConfirmDeleteRecipe] = useState<Recipe | null>(null);
+  const [editorProduct, setEditorProduct] = useState<Product | null>(null);
   const queryClient = useQueryClient();
 
-  const productIdNum = filterProductId != null ? Number(filterProductId) : undefined;
-
-  const { data: recipes = [], isLoading } = useQuery({
-    queryKey: ["recipes", productIdNum],
-    queryFn: () => listRecipes(productIdNum),
+  const { data: recipes = [], isLoading: recipesLoading } = useQuery({
+    queryKey: ["recipes"],
+    queryFn: () => listRecipes(),
   });
 
   const { data: products = [] } = useQuery({
@@ -55,251 +48,237 @@ export default function RecipesPage() {
     queryFn: () => listProducts(),
   });
 
-  const { data: ingredients = [] } = useQuery({
+  const { data: inventory = [] } = useQuery({
     queryKey: ["inventory"],
     queryFn: () => listInventory(),
   });
 
-  const productOptions = products.map((p) => ({ value: String(p.id), label: p.name }));
-  const ingredientOptions = ingredients.map((i) => ({ value: String(i.id), label: i.name }));
+  // Map ingredient id → { name, unit }
+  const ingredientById = useMemo(() => {
+    const m = new Map<number, { name: string; unit: string }>();
+    for (const item of inventory) m.set(item.id, { name: item.name, unit: item.unit });
+    return m;
+  }, [inventory]);
 
-  const addForm = useForm<AddFormValues>({
-    initialValues: { product_id: "", ingredient_id: "", qty: "" },
-    validate: {
-      product_id: (v) => (v === "" ? "Product is required" : null),
-      ingredient_id: (v) => (v === "" ? "Ingredient is required" : null),
-      qty: (v) => (v === "" || Number(v) <= 0 ? "Qty must be > 0" : null),
-    },
+  // Group all recipes by product_id
+  const recipesByProduct = useMemo(() => {
+    const m = new Map<number, typeof recipes>();
+    for (const r of recipes) {
+      const existing = m.get(r.product_id) ?? [];
+      existing.push(r);
+      m.set(r.product_id, existing);
+    }
+    return m;
+  }, [recipes]);
+
+  const ingredientOptions = inventory.map((i) => ({ value: String(i.id), label: i.name }));
+  const productSelectOptions = products.map((p) => ({ value: String(p.id), label: p.name }));
+
+  const form = useForm<EditorFormValues>({
+    initialValues: { rows: [] },
   });
 
-  const editForm = useForm<EditFormValues>({
-    initialValues: { qty: "" },
-    validate: {
-      qty: (v) => (v === "" || Number(v) <= 0 ? "Qty must be > 0" : null),
+  function openEditor(product: Product) {
+    const existing = recipesByProduct.get(product.id) ?? [];
+    const rows: RowType[] =
+      existing.length > 0
+        ? existing.map((r) => ({ ingredient_id: String(r.ingredient_id), qty: r.qty }))
+        : [{ ingredient_id: "", qty: "" }];
+    form.setValues({ rows });
+    setEditorProduct(product);
+  }
+
+  function closeEditor() {
+    setEditorProduct(null);
+    form.reset();
+  }
+
+  const saveMutation = useMutation({
+    mutationFn: ({ productId, rows }: { productId: number; rows: RowType[] }) => {
+      const items = rows
+        .filter((r) => r.ingredient_id !== "")
+        .map((r) => ({ ingredient_id: Number(r.ingredient_id), qty: Number(r.qty) }));
+      return setProductRecipe(productId, items);
     },
-  });
-
-  function openAdd() {
-    addForm.reset();
-    setAddModalOpen(true);
-  }
-
-  function closeAdd() {
-    setAddModalOpen(false);
-    addForm.reset();
-  }
-
-  function openEdit(recipe: Recipe) {
-    setEditingRecipe(recipe);
-    editForm.setValues({ qty: recipe.qty });
-  }
-
-  function closeEdit() {
-    setEditingRecipe(null);
-    editForm.reset();
-  }
-
-  const createMutation = useMutation({
-    mutationFn: (data: { product_id: number; ingredient_id: number; qty: number }) =>
-      createRecipe(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      notifications.show({ color: "green", title: "Success", message: "Recipe entry created." });
-      closeAdd();
+      notifications.show({ color: "green", title: "Saved", message: "Recipe saved successfully." });
+      closeEditor();
     },
     onError: (err) => {
-      const msg = err instanceof ApiError ? err.message : "Failed to create recipe.";
+      const msg = err instanceof ApiError ? err.message : "Failed to save recipe.";
       notifications.show({ color: "red", title: "Error", message: msg });
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { qty: number } }) =>
-      updateRecipe(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      notifications.show({ color: "green", title: "Success", message: "Recipe entry updated." });
-      closeEdit();
-    },
-    onError: (err) => {
-      const msg = err instanceof ApiError ? err.message : "Failed to update recipe.";
-      notifications.show({ color: "red", title: "Error", message: msg });
-    },
-  });
+  function handleSave(values: EditorFormValues) {
+    if (!editorProduct) return;
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteRecipe(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      notifications.show({ color: "green", title: "Success", message: "Recipe entry deleted." });
-      setConfirmDeleteRecipe(null);
-    },
-    onError: (err) => {
-      const msg = err instanceof ApiError ? err.message : "Failed to delete recipe.";
-      notifications.show({ color: "red", title: "Error", message: msg });
-      setConfirmDeleteRecipe(null);
-    },
-  });
+    // Drop rows with no ingredient selected
+    const validRows = values.rows.filter((r) => r.ingredient_id !== "");
 
-  function handleAddSubmit(values: AddFormValues) {
-    createMutation.mutate({
-      product_id: Number(values.product_id),
-      ingredient_id: Number(values.ingredient_id),
-      qty: Number(values.qty),
-    });
+    // Check qty > 0 for all valid rows
+    for (const r of validRows) {
+      if (r.qty === "" || Number(r.qty) <= 0) {
+        notifications.show({
+          color: "red",
+          title: "Validation error",
+          message: "All ingredient quantities must be greater than 0.",
+        });
+        return;
+      }
+    }
+
+    // Check for duplicate ingredients
+    const seen = new Set<string>();
+    for (const r of validRows) {
+      if (seen.has(r.ingredient_id)) {
+        const ing = ingredientById.get(Number(r.ingredient_id));
+        notifications.show({
+          color: "red",
+          title: "Duplicate ingredient",
+          message: `"${ing?.name ?? r.ingredient_id}" appears more than once.`,
+        });
+        return;
+      }
+      seen.add(r.ingredient_id);
+    }
+
+    saveMutation.mutate({ productId: editorProduct.id, rows: validRows });
   }
 
-  function handleEditSubmit(values: EditFormValues) {
-    if (!editingRecipe) return;
-    updateMutation.mutate({ id: editingRecipe.id, data: { qty: Number(values.qty) } });
-  }
+  // Products that have at least one recipe row
+  const productsWithRecipes = products.filter((p) => (recipesByProduct.get(p.id)?.length ?? 0) > 0);
 
   return (
     <Box>
       <Group justify="space-between" mb="md">
         <Title order={3}>Recipes</Title>
-        <Button onClick={openAdd}>Add entry</Button>
       </Group>
 
+      {/* Top control: open editor for any product */}
       <Select
-        placeholder="Filter by product (all)"
-        data={productOptions}
-        value={filterProductId}
-        onChange={setFilterProductId}
+        placeholder="Edit recipe for product…"
+        data={productSelectOptions}
+        searchable
         clearable
-        mb="md"
-        w={300}
+        value={null}
+        onChange={(val) => {
+          if (!val) return;
+          const product = products.find((p) => String(p.id) === val);
+          if (product) openEditor(product);
+        }}
+        mb="xl"
+        w={320}
       />
 
-      <Table striped highlightOnHover>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Product</Table.Th>
-            <Table.Th>Ingredient</Table.Th>
-            <Table.Th>Qty</Table.Th>
-            <Table.Th>Actions</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {isLoading && (
-            <Table.Tr>
-              <Table.Td colSpan={4}>Loading...</Table.Td>
-            </Table.Tr>
-          )}
-          {!isLoading && recipes.length === 0 && (
-            <Table.Tr>
-              <Table.Td colSpan={4}>No recipe entries found.</Table.Td>
-            </Table.Tr>
-          )}
-          {recipes.map((r) => (
-            <Table.Tr key={r.id}>
-              <Table.Td>{r.product_name}</Table.Td>
-              <Table.Td>{r.ingredient_name}</Table.Td>
-              <Table.Td>{r.qty}</Table.Td>
-              <Table.Td>
-                <Group gap="xs">
-                  <Button size="xs" variant="light" onClick={() => openEdit(r)}>
-                    Edit
-                  </Button>
+      {/* Cards: one per product that has recipes */}
+      {recipesLoading && (
+        <Text c="dimmed">Loading…</Text>
+      )}
+
+      {!recipesLoading && productsWithRecipes.length === 0 && (
+        <Text c="dimmed">No recipes yet — pick a product above to add one.</Text>
+      )}
+
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+        {productsWithRecipes.map((product) => {
+          const rows = recipesByProduct.get(product.id) ?? [];
+          return (
+            <Card key={product.id} withBorder shadow="sm" radius="md" padding="md">
+              <Group justify="space-between" mb="sm">
+                <Text fw={600}>{product.name}</Text>
+                <Button size="xs" variant="light" onClick={() => openEditor(product)}>
+                  Edit recipe
+                </Button>
+              </Group>
+              <Stack gap={4}>
+                {rows.map((r) => {
+                  const ing = ingredientById.get(r.ingredient_id);
+                  return (
+                    <Group key={r.id} justify="space-between">
+                      <Text size="sm">{r.ingredient_name}</Text>
+                      <Text size="sm" c="dimmed">
+                        {r.qty} {ing?.unit ?? ""}
+                      </Text>
+                    </Group>
+                  );
+                })}
+              </Stack>
+            </Card>
+          );
+        })}
+      </SimpleGrid>
+
+      {/* Editor Modal */}
+      <Modal
+        opened={editorProduct !== null}
+        onClose={closeEditor}
+        title={editorProduct ? `Recipe for: ${editorProduct.name}` : "Recipe"}
+        size="lg"
+      >
+        <form onSubmit={form.onSubmit(handleSave)}>
+          <Stack>
+            {form.values.rows.map((row, i) => {
+              const selectedUnit =
+                row.ingredient_id !== ""
+                  ? (ingredientById.get(Number(row.ingredient_id))?.unit ?? "")
+                  : "";
+              return (
+                <Group key={i} align="flex-end" gap="sm">
+                  <Select
+                    label={i === 0 ? "Ingredient" : undefined}
+                    placeholder="Select ingredient"
+                    data={ingredientOptions}
+                    searchable
+                    style={{ flex: 1 }}
+                    {...form.getInputProps(`rows.${i}.ingredient_id`)}
+                  />
+                  <NumberInput
+                    label={i === 0 ? "Qty" : undefined}
+                    placeholder="0"
+                    min={0}
+                    style={{ width: 90 }}
+                    {...form.getInputProps(`rows.${i}.qty`)}
+                  />
+                  <Text
+                    size="sm"
+                    c="dimmed"
+                    style={{ width: 48, paddingBottom: 6 }}
+                  >
+                    {selectedUnit}
+                  </Text>
                   <ActionIcon
                     color="red"
                     variant="light"
-                    size="sm"
-                    onClick={() => setConfirmDeleteRecipe(r)}
+                    style={{ marginBottom: 2 }}
+                    onClick={() => form.removeListItem("rows", i)}
+                    aria-label="Remove row"
                   >
                     ×
                   </ActionIcon>
                 </Group>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+              );
+            })}
 
-      {/* Add Modal */}
-      <Modal opened={addModalOpen} onClose={closeAdd} title="Add recipe entry">
-        <form onSubmit={addForm.onSubmit(handleAddSubmit)}>
-          <Stack>
-            <Select
-              label="Product"
-              placeholder="Select product"
-              data={productOptions}
-              searchable
-              {...addForm.getInputProps("product_id")}
-            />
-            <Select
-              label="Ingredient"
-              placeholder="Select ingredient"
-              data={ingredientOptions}
-              searchable
-              {...addForm.getInputProps("ingredient_id")}
-            />
-            <NumberInput
-              label="Qty"
-              placeholder="0"
-              min={0}
-              {...addForm.getInputProps("qty")}
-            />
+            <Button
+              variant="subtle"
+              size="sm"
+              onClick={() => form.insertListItem("rows", { ingredient_id: "", qty: "" })}
+            >
+              + Add ingredient
+            </Button>
+
             <Group justify="flex-end" mt="sm">
-              <Button variant="default" onClick={closeAdd}>
+              <Button variant="default" onClick={closeEditor}>
                 Cancel
               </Button>
-              <Button type="submit" loading={createMutation.isPending}>
-                Create
+              <Button type="submit" loading={saveMutation.isPending}>
+                Save recipe
               </Button>
             </Group>
           </Stack>
         </form>
-      </Modal>
-
-      {/* Edit Modal */}
-      <Modal opened={editingRecipe !== null} onClose={closeEdit} title="Edit recipe entry">
-        <form onSubmit={editForm.onSubmit(handleEditSubmit)}>
-          <Stack>
-            <Text size="sm" c="dimmed">
-              {editingRecipe?.product_name} — {editingRecipe?.ingredient_name}
-            </Text>
-            <NumberInput
-              label="Qty"
-              placeholder="0"
-              min={0}
-              {...editForm.getInputProps("qty")}
-            />
-            <Group justify="flex-end" mt="sm">
-              <Button variant="default" onClick={closeEdit}>
-                Cancel
-              </Button>
-              <Button type="submit" loading={updateMutation.isPending}>
-                Save
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
-
-      {/* Confirm Delete Modal */}
-      <Modal
-        opened={confirmDeleteRecipe !== null}
-        onClose={() => setConfirmDeleteRecipe(null)}
-        title="Confirm Delete"
-        size="sm"
-      >
-        <Text mb="md">
-          Delete recipe entry for <strong>{confirmDeleteRecipe?.product_name}</strong> /{" "}
-          <strong>{confirmDeleteRecipe?.ingredient_name}</strong>?
-        </Text>
-        <Group justify="flex-end">
-          <Button variant="default" onClick={() => setConfirmDeleteRecipe(null)}>
-            Cancel
-          </Button>
-          <Button
-            color="red"
-            loading={deleteMutation.isPending}
-            onClick={() => confirmDeleteRecipe && deleteMutation.mutate(confirmDeleteRecipe.id)}
-          >
-            Delete
-          </Button>
-        </Group>
       </Modal>
     </Box>
   );
