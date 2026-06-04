@@ -30,7 +30,7 @@ export default function HistoryPage() {
     queryFn: () => listSales({ search, start, end }),
   });
 
-  const { data: receipt } = useQuery({
+  const { data: receipt, isError: receiptIsError } = useQuery({
     queryKey: ["receipt", selectedId],
     queryFn: () => getReceipt(selectedId!),
     enabled: selectedId !== null,
@@ -141,7 +141,9 @@ export default function HistoryPage() {
         title={`Receipt #${selectedId}`}
         size="md"
       >
-        {receipt ? (
+        {receiptIsError ? (
+          <Text c="red" size="sm">Failed to load receipt. Please try again.</Text>
+        ) : receipt ? (
           <Stack gap="sm">
             <ReceiptView receipt={receipt} />
             <Button fullWidth mt="sm" onClick={() => setSelectedId(null)}>

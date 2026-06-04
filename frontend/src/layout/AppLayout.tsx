@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   AppShell,
   Title,
@@ -24,8 +24,10 @@ import SettingsPage from "../pages/SettingsPage";
 export default function AppLayout() {
   const { user, logout } = useAuth();
 
-  const allowedKeys = user ? ROLE_PERMISSIONS[user.role] : [];
-  const allowedItems = NAV_ITEMS.filter((item) => allowedKeys.includes(item.key));
+  const allowedItems = useMemo(() => {
+    const allowedKeys = user ? ROLE_PERMISSIONS[user.role] : [];
+    return NAV_ITEMS.filter((item) => allowedKeys.includes(item.key));
+  }, [user]);
 
   const [activeKey, setActiveKey] = useState(() => allowedItems[0]?.key ?? "");
 
