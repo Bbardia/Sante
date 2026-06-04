@@ -3,7 +3,7 @@
 GET  /backup  – download the current SQLite database file.
 POST /restore – upload a SQLite file to replace the current database.
 
-Both endpoints are restricted to admin and manager roles.
+Both endpoints are restricted to admin role only.
 
 Design note: DB_PATH and engine are accessed through the module object at
 call-time (``import app.db as dbmod``) so tests can monkeypatch them without
@@ -22,12 +22,12 @@ router = APIRouter(tags=["backup"])
 
 _SQLITE_MAGIC = b"SQLite format 3\x00"
 
-_admin_or_manager = require_roles("admin", "manager")
+_admin_only = require_roles("admin")
 
 
 @router.get("/backup")
 async def download_backup(
-    _=Depends(_admin_or_manager),
+    _=Depends(_admin_only),
 ):
     """Download the current SQLite database as a binary file."""
     db_path = dbmod.DB_PATH
@@ -43,7 +43,7 @@ async def download_backup(
 @router.post("/restore")
 async def restore_backup(
     file: UploadFile,
-    _=Depends(_admin_or_manager),
+    _=Depends(_admin_only),
 ):
     """Replace the current database with an uploaded SQLite file.
 

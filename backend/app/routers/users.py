@@ -11,14 +11,14 @@ from app.security import hash_password, require_roles
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-_admin_or_manager = require_roles("admin", "manager")
+_admin_only = require_roles("admin")
 
 
 @router.get("", response_model=List[UserOut])
 def list_users(
     search: Optional[str] = None,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(_admin_or_manager),
+    _current_user: User = Depends(_admin_only),
 ):
     query = db.query(User)
     if search:
@@ -30,7 +30,7 @@ def list_users(
 def create_user(
     body: UserCreate,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(_admin_or_manager),
+    _current_user: User = Depends(_admin_only),
 ):
     existing = db.query(User).filter(User.username == body.username).first()
     if existing:
@@ -55,7 +55,7 @@ def update_user(
     user_id: int,
     body: UserUpdate,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(_admin_or_manager),
+    _current_user: User = Depends(_admin_only),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
@@ -91,7 +91,7 @@ def update_user(
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(_admin_or_manager),
+    _current_user: User = Depends(_admin_only),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
