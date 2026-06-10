@@ -57,14 +57,14 @@ def test_create_duplicate_name_returns_409(client):
     assert resp.status_code == 409
 
 
-def test_create_negative_discount_returns_400(client):
+def test_create_negative_discount_returns_422(client):
     token = _login(client)
     resp = client.post(
         "/customers",
         json={"name": "Dave", "discount": -5.0},
         headers=_auth(token),
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 422
 
 
 def test_list_customers_ordered_by_name(client):

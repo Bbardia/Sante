@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   AppShell,
   Title,
@@ -30,15 +30,12 @@ export default function AppLayout() {
   }, [user]);
 
   const [activeKey, setActiveKey] = useState(() => allowedItems[0]?.key ?? "");
-
-  useEffect(() => {
-    if (!allowedItems.some((item) => item.key === activeKey)) {
-      setActiveKey(allowedItems[0]?.key ?? "");
-    }
-  }, [allowedItems]);
+  const currentActiveKey = allowedItems.some((item) => item.key === activeKey)
+    ? activeKey
+    : allowedItems[0]?.key ?? "";
 
   function renderContent() {
-    const activeItem = allowedItems.find((i) => i.key === activeKey);
+    const activeItem = allowedItems.find((i) => i.key === currentActiveKey);
     if (!activeItem) return <Text c="dimmed">Nothing to show.</Text>;
 
     if (activeItem.key === "dashboard") return <DashboardPage />;
@@ -88,7 +85,7 @@ export default function AppLayout() {
             <NavLink
               key={item.key}
               label={item.label}
-              active={activeKey === item.key}
+              active={currentActiveKey === item.key}
               onClick={() => setActiveKey(item.key)}
             />
           ))}

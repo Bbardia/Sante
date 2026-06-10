@@ -1,4 +1,6 @@
 import logging
+import os
+import secrets
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -21,6 +23,19 @@ from app.routers.backup import router as backup_router
 
 logger = logging.getLogger("sante")
 
+DEFAULT_ADMIN_PASSWORD = "admin"
+INITIAL_ADMIN_PASSWORD_ENV = "SANTE_INITIAL_ADMIN_PASSWORD"
+DEMO_ADMIN_ENV = "SANTE_DEMO_ADMIN"
+
+
+def get_initial_admin_password() -> str:
+    configured_password = os.environ.get(INITIAL_ADMIN_PASSWORD_ENV)
+    if configured_password:
+        return configured_password
+    if os.environ.get(DEMO_ADMIN_ENV) == "1":
+        return DEFAULT_ADMIN_PASSWORD
+    return secrets.token_urlsafe(18)
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -33,7 +48,20 @@ async def lifespan(_app: FastAPI):
 
     with SessionLocal() as db:
         if not db.query(User).first():
-            db.add(User(username="admin", password_hash=hash_password("admin"), role="admin"))
+            initial_password = get_initial_admin_password()
+            if initial_password == DEFAULT_ADMIN_PASSWORD:
+                logger.warning(
+                    "Creating demo admin/admin user because %s=1; set %s before first run for a safer password.",
+                    DEMO_ADMIN_ENV,
+                    INITIAL_ADMIN_PASSWORD_ENV,
+                )
+            elif not os.environ.get(INITIAL_ADMIN_PASSWORD_ENV):
+                logger.warning(
+                    "Generated first-run admin password: %s. Set %s before first run to choose your own.",
+                    initial_password,
+                    INITIAL_ADMIN_PASSWORD_ENV,
+                )
+            db.add(User(username="admin", password_hash=hash_password(initial_password), role="admin"))
             db.commit()
 
     yield
@@ -74,7 +102,6 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-import os
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 
