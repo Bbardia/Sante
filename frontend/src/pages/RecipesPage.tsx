@@ -249,6 +249,7 @@ export default function RecipesPage() {
                     {selectedUnit}
                   </Text>
                   <ActionIcon
+                    type="button"
                     color="red"
                     variant="light"
                     style={{ marginBottom: 2 }}
@@ -262,6 +263,7 @@ export default function RecipesPage() {
             })}
 
             <Button
+              type="button"
               variant="subtle"
               size="sm"
               onClick={() => form.insertListItem("rows", { ingredient_id: "", qty: "" })}
@@ -270,7 +272,7 @@ export default function RecipesPage() {
             </Button>
 
             <Group justify="flex-end" mt="sm">
-              <Button variant="default" onClick={closeEditor}>
+              <Button type="button" variant="default" onClick={closeEditor}>
                 Cancel
               </Button>
               <Button type="submit" loading={saveMutation.isPending}>
