@@ -17,9 +17,11 @@ export const tokenStore = {
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  detail?: unknown;
+  constructor(status: number, message: string, detail?: unknown) {
     super(message);
     this.status = status;
+    this.detail = detail;
   }
 }
 
@@ -34,13 +36,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
   if (!res.ok) {
-    let detail = res.statusText;
+    let message = res.statusText;
+    let rawDetail: unknown;
     try {
       const body = await res.json();
-      if (typeof body.detail === "string") detail = body.detail;
-      else if (Array.isArray(body.detail)) detail = body.detail.map((d: { msg?: string }) => d.msg ?? "").filter(Boolean).join("; ") || detail;
+      rawDetail = body.detail;
+      if (typeof body.detail === "string") message = body.detail;
+      else if (Array.isArray(body.detail)) message = body.detail.map((d: { msg?: string }) => d.msg ?? "").filter(Boolean).join("; ") || message;
+      else if (body.detail !== null && typeof body.detail === "object" && typeof (body.detail as { message?: unknown }).message === "string") message = (body.detail as { message: string }).message;
     } catch { /* ignore */ }
-    throw new ApiError(res.status, detail);
+    throw new ApiError(res.status, message, rawDetail);
   }
   if (res.status === 204) return undefined as unknown as T;
   return res.json() as Promise<T>;
@@ -225,4 +230,76 @@ export async function updateRecipe(id: number, data: { qty: number }): Promise<R
 
 export async function deleteRecipe(id: number): Promise<void> {
   return request<void>(`/recipes/${id}`, { method: "DELETE" });
+}
+
+// ─── Customers ────────────────────────────────────────────────────────────────
+
+export interface Customer {
+  id: number;
+  name: string;
+  discount: number;
+}
+
+export async function listCustomers(search?: string): Promise<Customer[]> {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : "";
+  return request<Customer[]>(`/customers${qs}`);
+}
+
+export async function createCustomer(data: { name: string; discount: number }): Promise<Customer> {
+  return request<Customer>("/customers", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCustomer(
+  id: number,
+  data: { name?: string; discount?: number }
+): Promise<Customer> {
+  return request<Customer>(`/customers/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCustomer(id: number): Promise<void> {
+  return request<void>(`/customers/${id}`, { method: "DELETE" });
+}
+
+// ─── Sales / Checkout ─────────────────────────────────────────────────────────
+
+export interface ReceiptItem {
+  product_name: string;
+  qty: number;
+  unit_price: number;
+  line_total: number;
+}
+
+export interface Receipt {
+  sale_id: number;
+  created_at: string;
+  customer_name: string | null;
+  items: ReceiptItem[];
+  subtotal: number;
+  discount_pct: number;
+  discount_amount: number;
+  total: number;
+  payment_status: string;
+}
+
+export interface CartItem {
+  product_id: number;
+  qty: number;
+}
+
+export async function checkout(req: {
+  customer_id?: number | null;
+  discount_pct?: number;
+  pay_later?: boolean;
+  items: CartItem[];
+}): Promise<Receipt> {
+  return request<Receipt>("/sales", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
 }
