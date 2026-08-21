@@ -169,3 +169,19 @@ def test_salesman_cannot_list_users(client):
     salesman_token = login.json()["access_token"]
     resp = client.get("/users", headers=_auth(salesman_token))
     assert resp.status_code == 403
+
+
+def test_manager_forbidden_on_users(client):
+    admin_token = _admin_token(client)
+    # Create a manager user via admin token
+    client.post(
+        "/users",
+        json={"username": "mgr_test", "password": "pass", "role": "manager"},
+        headers=_auth(admin_token),
+    )
+    # Login as manager
+    login = client.post("/auth/login", json={"username": "mgr_test", "password": "pass"})
+    mgr_token = login.json()["access_token"]
+    # Manager must be forbidden on GET /users
+    resp = client.get("/users", headers=_auth(mgr_token))
+    assert resp.status_code == 403

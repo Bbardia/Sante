@@ -18,7 +18,7 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const ROLE_PERMISSIONS: Record<Role, string[]> = {
   admin:    ["dashboard","inventory","products","recipes","sales","history","debts","reports","users","settings"],
-  manager:  ["dashboard","inventory","products","recipes","sales","history","debts","reports","users","settings"],
+  manager:  ["dashboard","inventory","products","recipes","sales","history","debts","reports"],
   salesman: ["dashboard","sales","history","debts","reports"],
   stockman: ["inventory"],
 };

@@ -84,8 +84,8 @@ def test_backup_download_admin(patched_client):
     assert resp.content[:15] == b"SQLite format 3"
 
 
-def test_backup_download_manager(patched_client):
-    """Manager role is allowed on GET /backup."""
+def test_backup_download_manager_forbidden(patched_client):
+    """Manager role is forbidden on GET /backup (403)."""
     client, tmp_path, fake_db = patched_client
     # Create a manager user via admin
     token = _admin_token(client)
@@ -98,7 +98,18 @@ def test_backup_download_manager(patched_client):
     mgr_token = mgr_resp.json()["access_token"]
 
     resp = client.get("/backup", headers=_auth(mgr_token))
-    assert resp.status_code == 200
+    assert resp.status_code == 403
+
+    # Manager is also forbidden on POST /restore
+    new_db_path = tmp_path / "mgr_restore.db"
+    _make_sqlite_db(new_db_path)
+    new_bytes = new_db_path.read_bytes()
+    restore_resp = client.post(
+        "/restore",
+        files={"file": ("mgr_restore.db", io.BytesIO(new_bytes), "application/octet-stream")},
+        headers=_auth(mgr_token),
+    )
+    assert restore_resp.status_code == 403
 
 
 def test_backup_salesman_forbidden(patched_client):
