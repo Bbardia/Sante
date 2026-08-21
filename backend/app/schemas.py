@@ -202,3 +202,14 @@ class ReceiptOut(BaseModel):
     discount_amount: float
     total: float
     payment_status: str
+
+
+class SaleSummaryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    customer_name: str | None
+    total: float
+    payment_status: str
+    item_count: int
