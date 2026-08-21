@@ -1,0 +1,99 @@
+name: Build Windows Installer
+
+# Produces a single one-click Windows installer (NSIS) that bundles the
+# PyInstaller-packaged FastAPI backend + the built React SPA inside an Electron
+# shell. PyInstaller cannot cross-compile, so this runs on a Windows runner.
+#
+# Triggers:
+#   - Push a version tag (e.g. v0.1.0)  -> builds + attaches the installer to a
+#     GitHub Release named for that tag. THIS IS THE PRIMARY PATH.
+#   - "Run workflow" button (workflow_dispatch) -> builds and uploads the
+#     installer as a downloadable artifact (no Release).
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write # let the built-in GITHUB_TOKEN create/attach the Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # On a tag push, name the installer after the tag (v0.1.0 -> 0.1.0).
+      # Manual runs keep the version already in electron/package.json.
+      - name: Derive version from tag
+        id: ver
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Building version $version"
+
+      - name: Apply tag version to electron app
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: electron
+        run: npm version ${{ steps.ver.outputs.version }} --no-git-tag-version --allow-same-version
+
+      # 1. Backend -> backend/dist/sante-backend.exe
+      - name: Build backend executable (PyInstaller)
+        working-directory: backend
+        shell: cmd
+        run: |
+          python -m venv .venv
+          call .venv\Scripts\activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+          pyinstaller sante-backend.spec
+
+      # 2. Frontend -> frontend/dist/
+      - name: Build frontend SPA
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      # 3. Installer -> electron/release/Santé Setup <version>.exe
+      - name: Build Windows installer (electron-builder)
+        working-directory: electron
+        run: |
+          npm ci
+          npm run dist
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sante-windows-installer
+          path: |
+            electron/release/*.exe
+            electron/release/*.exe.blockmap
+            electron/release/latest.yml
+          if-no-files-found: error
+
+      # Tag pushes also get a permanent download link on the Releases page.
+      - name: Attach installer to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            electron/release/*.exe
+            electron/release/*.exe.blockmap
+            electron/release/latest.yml

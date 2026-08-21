@@ -16,9 +16,13 @@ function startBackend() {
     const exeName = process.platform === "win32" ? "sante-backend.exe" : "sante-backend";
     const exePath = path.join(process.resourcesPath, "backend", exeName);
     const staticDir = path.join(process.resourcesPath, "frontend");
+    // Per-user writable dir (%APPDATA%\Santé on Windows). The install dir under
+    // Program Files is read-only, so the SQLite DB must live here instead — this
+    // also preserves business data across app upgrades/uninstalls.
+    const dataDir = app.getPath("userData");
 
     backendProcess = spawn(exePath, [], {
-      env: { ...process.env, SANTE_STATIC_DIR: staticDir },
+      env: { ...process.env, SANTE_STATIC_DIR: staticDir, SANTE_DATA_DIR: dataDir },
       stdio: "inherit",
     });
     backendProcess.on("error", (err) => {

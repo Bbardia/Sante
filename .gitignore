@@ -39,3 +39,6 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .claude
+
+# ---- Claude Code / Superpowers tooling artifacts (never commit) ----
+docs/
