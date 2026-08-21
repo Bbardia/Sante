@@ -1,7 +1,9 @@
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 import app.models  # noqa: F401 – registers all ORM models with Base
 from app.db import SessionLocal, engine, Base
@@ -16,6 +18,8 @@ from app.routers.debts import router as debts_router
 from app.routers.reports import router as reports_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.backup import router as backup_router
+
+logger = logging.getLogger("sante")
 
 
 @asynccontextmanager
@@ -57,6 +61,12 @@ app.include_router(debts_router)
 app.include_router(reports_router)
 app.include_router(dashboard_router)
 app.include_router(backup_router)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @app.get("/health")
