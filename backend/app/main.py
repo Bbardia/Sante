@@ -15,6 +15,7 @@ from app.routers.sales import router as sales_router
 from app.routers.debts import router as debts_router
 from app.routers.reports import router as reports_router
 from app.routers.dashboard import router as dashboard_router
+from app.routers.backup import router as backup_router
 
 
 @asynccontextmanager
@@ -55,6 +56,7 @@ app.include_router(sales_router)
 app.include_router(debts_router)
 app.include_router(reports_router)
 app.include_router(dashboard_router)
+app.include_router(backup_router)
 
 
 @app.get("/health")
