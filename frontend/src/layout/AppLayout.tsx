@@ -18,6 +18,7 @@ import SalesPage from "../pages/SalesPage";
 import HistoryPage from "../pages/HistoryPage";
 import DebtsPage from "../pages/DebtsPage";
 import ReportsPage from "../pages/ReportsPage";
+import DashboardPage from "../pages/DashboardPage";
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -37,6 +38,7 @@ export default function AppLayout() {
     const activeItem = allowedItems.find((i) => i.key === activeKey);
     if (!activeItem) return <Text c="dimmed">Nothing to show.</Text>;
 
+    if (activeItem.key === "dashboard") return <DashboardPage />;
     if (activeItem.key === "users") return <UsersPage />;
     if (activeItem.key === "inventory") return <InventoryPage />;
     if (activeItem.key === "products") return <ProductsPage />;
