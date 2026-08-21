@@ -7,7 +7,7 @@ import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import App from "./App";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000 } } });
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
