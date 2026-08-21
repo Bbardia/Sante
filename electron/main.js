@@ -6,24 +6,40 @@ const path = require("path");
 
 const BACKEND_PORT = 8756;
 const DEV_URL = "http://localhost:5173";
+const PROD_URL = `http://127.0.0.1:${BACKEND_PORT}`;
 
 let backendProcess = null;
 
 function startBackend() {
-  // Dev: run uvicorn from the backend venv (macOS/Linux path; Windows handled in the packaging phase).
-  const pythonBin = path.join(__dirname, "..", "backend", ".venv", "bin", "python");
-  if (!fs.existsSync(pythonBin)) {
-    console.error(`[backend] Python not found at ${pythonBin} — did you create backend/.venv?`);
-    return; // backendProcess stays null; waitForBackend will time out and show the error page
+  if (app.isPackaged) {
+    // PROD: spawn the bundled backend executable from resources
+    const exeName = process.platform === "win32" ? "sante-backend.exe" : "sante-backend";
+    const exePath = path.join(process.resourcesPath, "backend", exeName);
+    const staticDir = path.join(process.resourcesPath, "frontend");
+
+    backendProcess = spawn(exePath, [], {
+      env: { ...process.env, SANTE_STATIC_DIR: staticDir },
+      stdio: "inherit",
+    });
+    backendProcess.on("error", (err) => {
+      console.error("Failed to start backend:", err);
+    });
+  } else {
+    // DEV: run uvicorn from the backend venv (macOS/Linux path; Windows handled in the packaging phase).
+    const pythonBin = path.join(__dirname, "..", "backend", ".venv", "bin", "python");
+    if (!fs.existsSync(pythonBin)) {
+      console.error(`[backend] Python not found at ${pythonBin} — did you create backend/.venv?`);
+      return; // backendProcess stays null; waitForBackend will time out and show the error page
+    }
+    backendProcess = spawn(
+      pythonBin,
+      ["-m", "uvicorn", "app.main:app", "--port", String(BACKEND_PORT)],
+      { cwd: path.join(__dirname, "..", "backend"), stdio: "inherit" },
+    );
+    backendProcess.on("error", (err) => {
+      console.error("Failed to start backend:", err);
+    });
   }
-  backendProcess = spawn(
-    pythonBin,
-    ["-m", "uvicorn", "app.main:app", "--port", String(BACKEND_PORT)],
-    { cwd: path.join(__dirname, "..", "backend"), stdio: "inherit" },
-  );
-  backendProcess.on("error", (err) => {
-    console.error("Failed to start backend:", err);
-  });
 }
 
 // Version-agnostic health poll using Node's built-in http (works on any Electron/Node version;
@@ -32,7 +48,7 @@ function waitForBackend() {
   return new Promise((resolve) => {
     let attempts = 0;
     function probe() {
-      const req = http.get(`http://localhost:${BACKEND_PORT}/health`, (res) => {
+      const req = http.get(`http://127.0.0.1:${BACKEND_PORT}/health`, (res) => {
         res.resume();
         resolve(res.statusCode >= 200 && res.statusCode < 300);
       });
@@ -64,7 +80,11 @@ async function createWindow() {
   });
 
   if (healthy) {
-    win.loadURL(DEV_URL);
+    if (app.isPackaged) {
+      win.loadURL(PROD_URL);
+    } else {
+      win.loadURL(DEV_URL);
+    }
   } else {
     win.loadURL(
       "data:text/html," +

@@ -19,6 +19,7 @@ build/
 
 # ---- Packaging artifacts ----
 *.spec
+!backend/sante-backend.spec
 release/
 
 # ---- Runtime data (do NOT commit business data) ----
@@ -37,3 +38,4 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+.claude

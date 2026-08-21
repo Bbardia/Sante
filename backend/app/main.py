@@ -62,3 +62,13 @@ app.include_router(backup_router)
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+import os
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
+_static_dir = os.environ.get("SANTE_STATIC_DIR")
+if _static_dir and Path(_static_dir).is_dir():
+    # Production: serve the built SPA. Mounted LAST so it doesn't shadow API routes.
+    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
