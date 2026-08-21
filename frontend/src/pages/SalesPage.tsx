@@ -18,6 +18,8 @@ import {
   Checkbox,
   Divider,
   Paper,
+  ScrollArea,
+  SimpleGrid,
 } from "@mantine/core";
 import {
   listProducts,
@@ -90,14 +92,12 @@ export default function SalesPage() {
   const discount = Number(discountPct) || 0;
   const discountAmount = subtotal * (discount / 100);
   const total = subtotal - discountAmount;
+  const quickProducts = products.slice(0, 8);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
-  function handleAddToCart() {
-    if (!selectedProductId) return;
-    const product = products.find((p) => String(p.id) === selectedProductId);
-    if (!product) return;
-    const qty = Number(addQty) || 1;
+  function addProductToCart(product: (typeof products)[number], qty: number) {
+    if (qty <= 0) return;
     setCart((prev) => {
       const existing = prev.find((e) => e.product_id === product.id);
       if (existing) {
@@ -107,11 +107,29 @@ export default function SalesPage() {
       }
       return [...prev, { product_id: product.id, name: product.name, price: product.price, qty }];
     });
+  }
+
+  function handleAddToCart() {
+    if (!selectedProductId) return;
+    const product = products.find((p) => String(p.id) === selectedProductId);
+    if (!product) return;
+    const qty = Number(addQty) || 1;
+    addProductToCart(product, qty);
     setAddQty(1);
+    setSelectedProductId(null);
   }
 
   function handleRemoveFromCart(product_id: number) {
     setCart((prev) => prev.filter((e) => e.product_id !== product_id));
+  }
+
+  function handleCartQtyChange(product_id: number, value: number | string) {
+    const qty = Number(value);
+    setCart((prev) =>
+      prev.map((entry) =>
+        entry.product_id === product_id ? { ...entry, qty: qty > 0 ? qty : 1 } : entry
+      )
+    );
   }
 
   function handleCustomerChange(value: string | null) {
@@ -201,6 +219,26 @@ export default function SalesPage() {
               <Title order={5} mb="sm">
                 Add to cart
               </Title>
+              {quickProducts.length > 0 && (
+                <Box mb="md">
+                  <Text size="sm" fw={500} mb="xs">
+                    Quick picks
+                  </Text>
+                  <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="xs">
+                    {quickProducts.map((product) => (
+                      <Button
+                        key={product.id}
+                        variant="light"
+                        size="xs"
+                        aria-label={`Quick add ${product.name}`}
+                        onClick={() => addProductToCart(product, 1)}
+                      >
+                        {product.name}
+                      </Button>
+                    ))}
+                  </SimpleGrid>
+                </Box>
+              )}
               <Group align="flex-end" gap="sm">
                 <Select
                   label="Product"
@@ -226,10 +264,20 @@ export default function SalesPage() {
 
             {/* Cart table */}
             <Paper withBorder p="md" radius="sm">
-              <Title order={5} mb="sm">
-                Cart
-              </Title>
-              <Table striped highlightOnHover>
+              <Group justify="space-between" mb="sm">
+                <Title order={5}>Cart</Title>
+                <Button
+                  variant="subtle"
+                  color="red"
+                  size="xs"
+                  disabled={cart.length === 0}
+                  onClick={() => setCart([])}
+                >
+                  Clear cart
+                </Button>
+              </Group>
+              <ScrollArea type="auto">
+              <Table striped highlightOnHover miw={560}>
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>Product</Table.Th>
@@ -252,7 +300,15 @@ export default function SalesPage() {
                   {cart.map((entry) => (
                     <Table.Tr key={entry.product_id}>
                       <Table.Td>{entry.name}</Table.Td>
-                      <Table.Td>{entry.qty}</Table.Td>
+                      <Table.Td>
+                        <NumberInput
+                          aria-label={`Quantity for ${entry.name}`}
+                          min={1}
+                          value={entry.qty}
+                          onChange={(value) => handleCartQtyChange(entry.product_id, value)}
+                          w={90}
+                        />
+                      </Table.Td>
                       <Table.Td>{entry.price.toFixed(2)}</Table.Td>
                       <Table.Td>{(entry.price * entry.qty).toFixed(2)}</Table.Td>
                       <Table.Td>
@@ -260,6 +316,7 @@ export default function SalesPage() {
                           color="red"
                           variant="light"
                           size="sm"
+                          aria-label={`Remove ${entry.name} from cart`}
                           onClick={() => handleRemoveFromCart(entry.product_id)}
                         >
                           ×
@@ -269,6 +326,7 @@ export default function SalesPage() {
                   ))}
                 </Table.Tbody>
               </Table>
+              </ScrollArea>
 
               {cart.length > 0 && (
                 <Box mt="sm">
@@ -378,15 +436,21 @@ export default function SalesPage() {
             </Paper>
 
             {/* Checkout */}
-            <Button
-              size="lg"
-              fullWidth
-              disabled={cart.length === 0}
-              loading={checkoutMutation.isPending}
-              onClick={() => checkoutMutation.mutate()}
-            >
-              Checkout
-            </Button>
+            <Paper withBorder p="md" radius="sm" style={{ position: "sticky", top: 16 }}>
+              <Group justify="space-between" mb="sm">
+                <Text c="dimmed" size="sm">Total</Text>
+                <Text fw={700} size="xl">{total.toFixed(2)}</Text>
+              </Group>
+              <Button
+                size="lg"
+                fullWidth
+                disabled={cart.length === 0}
+                loading={checkoutMutation.isPending}
+                onClick={() => checkoutMutation.mutate()}
+              >
+                Checkout
+              </Button>
+            </Paper>
           </Stack>
         </Grid.Col>
       </Grid>

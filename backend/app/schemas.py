@@ -2,9 +2,16 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.security import VALID_ROLES
+
+
+def _strip_non_empty(value: str) -> str:
+    value = value.strip()
+    if not value:
+        raise ValueError("must not be blank")
+    return value
 
 # ---------------------------------------------------------------------------
 # Inventory schemas
@@ -38,16 +45,26 @@ class InventoryOut(BaseModel):
 
 class InventoryAdd(BaseModel):
     name: str
-    qty: float
+    qty: float = Field(gt=0)
     unit: str
-    price: float
-    reorder_level: float | None = None
+    price: float = Field(gt=0)
+    reorder_level: float | None = Field(default=None, ge=0)
+
+    @field_validator("name", "unit")
+    @classmethod
+    def text_must_not_be_blank(cls, v: str) -> str:
+        return _strip_non_empty(v)
 
 
 class InventoryUpdate(BaseModel):
     name: str | None = None
     unit: str | None = None
-    reorder_level: float | None = None
+    reorder_level: float | None = Field(default=None, ge=0)
+
+    @field_validator("name", "unit")
+    @classmethod
+    def text_must_not_be_blank(cls, v: str | None) -> str | None:
+        return _strip_non_empty(v) if v is not None else v
 
 
 # ---------------------------------------------------------------------------
@@ -65,12 +82,22 @@ class ProductOut(BaseModel):
 
 class ProductCreate(BaseModel):
     name: str
-    price: float
+    price: float = Field(ge=0)
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_blank(cls, v: str) -> str:
+        return _strip_non_empty(v)
 
 
 class ProductUpdate(BaseModel):
     name: str | None = None
-    price: float | None = None
+    price: float | None = Field(default=None, ge=0)
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_blank(cls, v: str | None) -> str | None:
+        return _strip_non_empty(v) if v is not None else v
 
 
 # ---------------------------------------------------------------------------
@@ -169,12 +196,22 @@ class CustomerOut(BaseModel):
 
 class CustomerCreate(BaseModel):
     name: str
-    discount: float = 0
+    discount: float = Field(default=0, ge=0, le=100)
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_blank(cls, v: str) -> str:
+        return _strip_non_empty(v)
 
 
 class CustomerUpdate(BaseModel):
     name: str | None = None
-    discount: float | None = None
+    discount: float | None = Field(default=None, ge=0, le=100)
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_blank(cls, v: str | None) -> str | None:
+        return _strip_non_empty(v) if v is not None else v
 
 
 # ---------------------------------------------------------------------------
