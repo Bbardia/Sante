@@ -5,10 +5,22 @@ backend, a **SQLite** database, packaged as an **Electron** desktop app. Replace
 the legacy single-file `Sante.py` (kept at the repo root for reference until data
 migration is complete in a later phase).
 
-> Status: **Phase 0 (scaffold)** complete — the three layers are wired and prove the
-> pipeline end-to-end (Electron spawns the backend, the React UI reads `/health`).
-> Feature work begins in Phase 1. See [.claude/plans/](.claude/plans/) for the design
-> spec and per-phase plans.
+> Status: **All 8 phases complete** (feature-complete pending a Windows packaging build).
+> Implemented: auth + roles, Inventory/Products/Recipes, Sales (stock-checked checkout),
+> History, Debts, Reports (+ Excel), Dashboard (+ low-stock alerts), printable receipts,
+> backup/restore, and a legacy-data importer. 144 backend tests pass. See
+> [.claude/plans/](.claude/plans/) for the design spec and per-phase plans.
+
+## Features
+- **Login + roles** (admin/manager/salesman/stockman) — bcrypt-hashed passwords, JWT, role-gated nav. Default `admin`/`admin`.
+- **Inventory** — add-stock (weighted avg price), edit, delete, reset, low-stock reorder levels.
+- **Products / Recipes** — CRUD; recipes link products → ingredients (FK).
+- **Sales** — cart, customers (+ discounts), pay-later/debt, **stock-checked transactional checkout** (rejects oversell), printable receipt.
+- **Sales History / Debts** — search + date filters; mark debts paid.
+- **Reports** — Daily/Weekly/Monthly/Yearly + custom range; in-app tables + **Excel export with charts**.
+- **Dashboard** — today's revenue, top products (chart), low-stock alerts.
+- **Settings** — DB backup (download) + restore (with auto safety-backup).
+- **Legacy import** — `cd backend && .venv/bin/python -m app.migrate_legacy /path/to/old/database.db`
 
 ## Layout
 ```
@@ -52,5 +64,7 @@ cd backend && .venv/bin/python -m pytest -v
   failed, check nothing else is using 8756 (`lsof -i :8756`).
 - The Electron health check uses Node's built-in `http` (not global `fetch`), so it
   works regardless of the installed Electron/Node version.
-- **Windows packaging** (PyInstaller backend + electron-builder installer) is a later
-  phase and must be built on Windows / CI — PyInstaller cannot cross-compile from macOS.
+- **Windows packaging** (PyInstaller backend + electron-builder installer) — see
+  [BUILD-WINDOWS.md](BUILD-WINDOWS.md). Must be built on Windows (PyInstaller cannot
+  cross-compile from macOS). In a packaged build the backend serves the built frontend
+  as static files and Electron loads `http://127.0.0.1:8756` (no CORS / file:// issues).
