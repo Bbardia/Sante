@@ -10,6 +10,8 @@ from app.routers.users import router as users_router
 from app.routers.inventory import router as inventory_router
 from app.routers.products import router as products_router
 from app.routers.recipes import router as recipes_router
+from app.routers.customers import router as customers_router
+from app.routers.sales import router as sales_router
 
 
 @asynccontextmanager
@@ -45,6 +47,8 @@ app.include_router(users_router)
 app.include_router(inventory_router)
 app.include_router(products_router)
 app.include_router(recipes_router)
+app.include_router(customers_router)
+app.include_router(sales_router)
 
 
 @app.get("/health")

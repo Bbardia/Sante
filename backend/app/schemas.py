@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.security import VALID_ROLES
@@ -141,3 +143,62 @@ class UserUpdate(BaseModel):
         if v is not None and v not in VALID_ROLES:
             raise ValueError(f"role must be one of {sorted(VALID_ROLES)}")
         return v
+
+
+# ---------------------------------------------------------------------------
+# Customer schemas
+# ---------------------------------------------------------------------------
+
+
+class CustomerOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    discount: float
+
+
+class CustomerCreate(BaseModel):
+    name: str
+    discount: float = 0
+
+
+class CustomerUpdate(BaseModel):
+    name: str | None = None
+    discount: float | None = None
+
+
+# ---------------------------------------------------------------------------
+# Sales / checkout schemas
+# ---------------------------------------------------------------------------
+
+
+class CartItem(BaseModel):
+    product_id: int
+    qty: float
+
+
+class CheckoutRequest(BaseModel):
+    customer_id: int | None = None
+    discount_pct: float = 0
+    pay_later: bool = False
+    items: list[CartItem]
+
+
+class ReceiptItem(BaseModel):
+    product_name: str
+    qty: float
+    unit_price: float
+    line_total: float
+
+
+class ReceiptOut(BaseModel):
+    sale_id: int
+    created_at: datetime
+    customer_name: str | None
+    items: list[ReceiptItem]
+    subtotal: float
+    discount_pct: float
+    discount_amount: float
+    total: float
+    payment_status: str
