@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { login as apiLogin, getMe, tokenStore, type User } from "../api/client";
+import { login as apiLogin, getMe, tokenStore, setUnauthorizedHandler, type User } from "../api/client";
 
 interface AuthContextValue {
   user: User | null;
@@ -15,6 +15,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
+
+  // Register global 401 logout handler
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      tokenStore.clear();
+      setUser(null);
+      queryClient.clear();
+    });
+    return () => setUnauthorizedHandler(null);
+  }, [queryClient]);
 
   // Restore session from stored token on mount
   useEffect(() => {
@@ -37,8 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(username: string, password: string) {
     const res = await apiLogin(username, password);
     tokenStore.set(res.access_token);
-    const me = await getMe();
-    setUser(me);
+    try {
+      const me = await getMe();
+      setUser(me);
+    } catch (err) {
+      tokenStore.clear();
+      throw err;
+    }
   }
 
   function logout() {

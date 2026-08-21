@@ -198,7 +198,7 @@ export default function ProductsPage() {
               {...form.getInputProps("price")}
             />
             <Group justify="flex-end" mt="sm">
-              <Button variant="default" onClick={closeModal}>
+              <Button type="button" variant="default" onClick={closeModal}>
                 Cancel
               </Button>
               <Button type="submit" loading={isMutating}>

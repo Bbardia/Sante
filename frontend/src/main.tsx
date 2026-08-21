@@ -7,6 +7,7 @@ import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "./print.css";
 import App from "./App";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000 } } });
 
@@ -14,8 +15,10 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <MantineProvider>
-        <Notifications />
-        <App />
+        <ErrorBoundary>
+          <Notifications />
+          <App />
+        </ErrorBoundary>
       </MantineProvider>
     </QueryClientProvider>
   </StrictMode>,

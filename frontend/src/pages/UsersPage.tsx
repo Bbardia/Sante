@@ -133,6 +133,10 @@ export default function UsersPage() {
 
   function handleSubmit(values: UserFormValues) {
     const role = values.role as Role;
+    if (!editingUser && !values.password.trim()) {
+      notifications.show({ color: "red", title: "Validation error", message: "Password is required when creating a user." });
+      return;
+    }
     if (editingUser) {
       const data: Partial<{ username: string; password: string; role: Role }> = {
         username: values.username,
@@ -247,7 +251,7 @@ export default function UsersPage() {
               {...form.getInputProps("role")}
             />
             <Group justify="flex-end" mt="sm">
-              <Button variant="default" onClick={closeModal}>
+              <Button type="button" variant="default" onClick={closeModal}>
                 Cancel
               </Button>
               <Button type="submit" loading={isMutating}>

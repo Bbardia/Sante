@@ -160,6 +160,8 @@ export default function SalesPage() {
       setPayLater(false);
       setSelectedCustomerId(null);
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["debts"] });
       notifications.show({ color: "green", title: "Sale complete", message: `Receipt #${data.sale_id} created.` });
     },
     onError: (err) => {

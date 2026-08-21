@@ -82,10 +82,10 @@ export default function ReportsPage() {
   }
 
   async function handleExport() {
+    if (!appliedParams) return;
     setExporting(true);
     try {
-      const params = buildParams();
-      const blob = await downloadReportExcel(params);
+      const blob = await downloadReportExcel(appliedParams);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -152,6 +152,7 @@ export default function ReportsPage() {
             color="teal"
             onClick={handleExport}
             loading={exporting}
+            disabled={appliedParams === null}
           >
             Export Excel
           </Button>

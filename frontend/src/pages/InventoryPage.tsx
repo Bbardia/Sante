@@ -215,7 +215,7 @@ export default function InventoryPage() {
             </Table.Tr>
           )}
           {items.map((item) => {
-            const isLow = item.qty <= item.reorder_level;
+            const isLow = item.reorder_level > 0 && item.qty <= item.reorder_level;
             return (
               <Table.Tr key={item.id}>
                 <Table.Td>{item.name}</Table.Td>
@@ -287,7 +287,7 @@ export default function InventoryPage() {
               {...addForm.getInputProps("reorder_level")}
             />
             <Group justify="flex-end" mt="sm">
-              <Button variant="default" onClick={closeAdd}>
+              <Button type="button" variant="default" onClick={closeAdd}>
                 Cancel
               </Button>
               <Button type="submit" loading={addMutation.isPending}>
@@ -319,7 +319,7 @@ export default function InventoryPage() {
               {...editForm.getInputProps("reorder_level")}
             />
             <Group justify="flex-end" mt="sm">
-              <Button variant="default" onClick={closeEdit}>
+              <Button type="button" variant="default" onClick={closeEdit}>
                 Cancel
               </Button>
               <Button type="submit" loading={updateMutation.isPending}>

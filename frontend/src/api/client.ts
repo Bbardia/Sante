@@ -13,6 +13,13 @@ export const tokenStore = {
   clear: () => localStorage.removeItem(TOKEN_KEY),
 };
 
+// ─── 401 handler ────────────────────────────────────────────────────────────
+
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(fn: (() => void) | null) {
+  onUnauthorized = fn;
+}
+
 // ─── Error type ─────────────────────────────────────────────────────────────
 
 export class ApiError extends Error {
@@ -45,6 +52,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       else if (Array.isArray(body.detail)) message = body.detail.map((d: { msg?: string }) => d.msg ?? "").filter(Boolean).join("; ") || message;
       else if (body.detail !== null && typeof body.detail === "object" && typeof (body.detail as { message?: unknown }).message === "string") message = (body.detail as { message: string }).message;
     } catch { /* ignore */ }
+    if (res.status === 401) {
+      tokenStore.clear();
+      onUnauthorized?.();
+    }
     throw new ApiError(res.status, message, rawDetail);
   }
   if (res.status === 204) return undefined as unknown as T;
@@ -374,6 +385,10 @@ export async function downloadBackup(): Promise<Blob> {
       const body = await res.json();
       if (typeof body.detail === "string") message = body.detail;
     } catch { /* ignore */ }
+    if (res.status === 401) {
+      tokenStore.clear();
+      onUnauthorized?.();
+    }
     throw new ApiError(res.status, message);
   }
   return res.blob();
@@ -395,6 +410,10 @@ export async function restoreDatabase(
       const body = await res.json();
       if (typeof body.detail === "string") message = body.detail;
     } catch { /* ignore */ }
+    if (res.status === 401) {
+      tokenStore.clear();
+      onUnauthorized?.();
+    }
     throw new ApiError(res.status, message);
   }
   return res.json() as Promise<{ restored: boolean; safety_backup: string | null }>;
@@ -493,6 +512,10 @@ export async function downloadReportExcel(params: ReportParams): Promise<Blob> {
       const body = await res.json();
       if (typeof body.detail === "string") message = body.detail;
     } catch { /* ignore */ }
+    if (res.status === 401) {
+      tokenStore.clear();
+      onUnauthorized?.();
+    }
     throw new ApiError(res.status, message);
   }
   return res.blob();
