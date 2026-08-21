@@ -1,0 +1,12 @@
+{
+  "name": "sante-desktop",
+  "version": "0.0.1",
+  "description": "Santé POS desktop shell",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}
