@@ -232,6 +232,11 @@ export async function deleteRecipe(id: number): Promise<void> {
   return request<void>(`/recipes/${id}`, { method: "DELETE" });
 }
 
+export interface RecipeSetItem { ingredient_id: number; qty: number }
+export async function setProductRecipe(productId: number, items: RecipeSetItem[]): Promise<Recipe[]> {
+  return request<Recipe[]>(`/recipes/product/${productId}`, { method: "PUT", body: JSON.stringify({ items }) });
+}
+
 // ─── Customers ────────────────────────────────────────────────────────────────
 
 export interface Customer {
