@@ -11,80 +11,13 @@ import {
   Text,
   Box,
   Badge,
-  Divider,
   Paper,
 } from "@mantine/core";
 import {
   listSales,
   getReceipt,
-  type Receipt,
 } from "../api/client";
-
-function ReceiptView({ receipt }: { receipt: Receipt }) {
-  return (
-    <Stack gap="sm">
-      <Group justify="space-between">
-        <Text size="sm" c="dimmed">Date</Text>
-        <Text size="sm">{new Date(receipt.created_at).toLocaleString()}</Text>
-      </Group>
-      {receipt.customer_name && (
-        <Group justify="space-between">
-          <Text size="sm" c="dimmed">Customer</Text>
-          <Text size="sm">{receipt.customer_name}</Text>
-        </Group>
-      )}
-
-      <Divider />
-
-      <Table striped>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Product</Table.Th>
-            <Table.Th>Qty</Table.Th>
-            <Table.Th>Unit price</Table.Th>
-            <Table.Th>Total</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {receipt.items.map((item, i) => (
-            <Table.Tr key={i}>
-              <Table.Td>{item.product_name}</Table.Td>
-              <Table.Td>{item.qty}</Table.Td>
-              <Table.Td>{item.unit_price.toFixed(2)}</Table.Td>
-              <Table.Td>{item.line_total.toFixed(2)}</Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
-
-      <Divider />
-
-      <Group justify="space-between">
-        <Text size="sm" c="dimmed">Subtotal</Text>
-        <Text size="sm">{receipt.subtotal.toFixed(2)}</Text>
-      </Group>
-      {receipt.discount_pct > 0 && (
-        <Group justify="space-between">
-          <Text size="sm" c="dimmed">Discount ({receipt.discount_pct}%)</Text>
-          <Text size="sm" c="red">-{receipt.discount_amount.toFixed(2)}</Text>
-        </Group>
-      )}
-      <Group justify="space-between">
-        <Text fw={700}>TOTAL</Text>
-        <Text fw={700}>{receipt.total.toFixed(2)}</Text>
-      </Group>
-
-      <Group justify="center" mt="xs">
-        <Badge
-          color={receipt.payment_status === "paid" ? "green" : "red"}
-          size="lg"
-        >
-          {receipt.payment_status.toUpperCase()}
-        </Badge>
-      </Group>
-    </Stack>
-  );
-}
+import ReceiptView from "../components/ReceiptView";
 
 export default function HistoryPage() {
   const [search, setSearch] = useState("");

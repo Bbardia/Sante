@@ -357,6 +357,44 @@ export async function getDashboard(): Promise<Dashboard> {
   return request<Dashboard>("/dashboard");
 }
 
+// ─── Backup / Restore ─────────────────────────────────────────────────────────
+
+export async function downloadBackup(): Promise<Blob> {
+  const res = await fetch(`${BASE}/backup`, {
+    headers: { Authorization: `Bearer ${tokenStore.get()}` },
+  });
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const body = await res.json();
+      if (typeof body.detail === "string") message = body.detail;
+    } catch { /* ignore */ }
+    throw new ApiError(res.status, message);
+  }
+  return res.blob();
+}
+
+export async function restoreDatabase(
+  file: File
+): Promise<{ restored: boolean; safety_backup: string | null }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE}/restore`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${tokenStore.get()}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const body = await res.json();
+      if (typeof body.detail === "string") message = body.detail;
+    } catch { /* ignore */ }
+    throw new ApiError(res.status, message);
+  }
+  return res.json() as Promise<{ restored: boolean; safety_backup: string | null }>;
+}
+
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
 export interface ReportRange {
