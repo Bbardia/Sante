@@ -344,3 +344,101 @@ export async function checkout(req: {
     body: JSON.stringify(req),
   });
 }
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+export interface ReportRange {
+  start: string;
+  end: string;
+  label: string;
+}
+
+export interface ReportOverview {
+  sales_count: number;
+  paid_revenue: number;
+  unpaid_debt: number;
+  grand_total: number;
+}
+
+export interface SaleDetailRow {
+  sale_id: number;
+  date: string;
+  product: string;
+  qty: number;
+  line_total: number;
+  customer: string | null;
+  payment_status: string;
+}
+
+export interface InventoryConsumptionRow {
+  ingredient: string;
+  consumed: number;
+  remaining: number;
+  unit: string;
+}
+
+export interface CurrentInventoryRow {
+  name: string;
+  qty: number;
+  unit: string;
+}
+
+export interface CustomerSummaryRow {
+  customer: string;
+  purchases: number;
+  paid: number;
+  debt: number;
+}
+
+export interface UnpaidBillRow {
+  sale_id: number;
+  date: string;
+  customer: string | null;
+  total: number;
+}
+
+export interface Report {
+  range: ReportRange;
+  overview: ReportOverview;
+  sales_details: SaleDetailRow[];
+  inventory_consumption: InventoryConsumptionRow[];
+  current_inventory: CurrentInventoryRow[];
+  customer_summary: CustomerSummaryRow[];
+  unpaid_bills: UnpaidBillRow[];
+}
+
+export interface ReportParams {
+  type?: string;
+  start?: string;
+  end?: string;
+}
+
+export async function getReport(params: ReportParams): Promise<Report> {
+  const p = new URLSearchParams();
+  if (params.type) p.set("type", params.type);
+  if (params.start) p.set("start", params.start);
+  if (params.end) p.set("end", params.end);
+  const qs = p.toString() ? `?${p.toString()}` : "";
+  return request<Report>(`/reports${qs}`);
+}
+
+export async function downloadReportExcel(params: ReportParams): Promise<Blob> {
+  const p = new URLSearchParams();
+  if (params.type) p.set("type", params.type);
+  if (params.start) p.set("start", params.start);
+  if (params.end) p.set("end", params.end);
+  const qs = p.toString() ? `?${p.toString()}` : "";
+  const token = tokenStore.get();
+  const res = await fetch(`${BASE}/reports/export.xlsx${qs}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const body = await res.json();
+      if (typeof body.detail === "string") message = body.detail;
+    } catch { /* ignore */ }
+    throw new ApiError(res.status, message);
+  }
+  return res.blob();
+}
