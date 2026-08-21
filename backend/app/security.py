@@ -1,15 +1,13 @@
 import os
 from typing import Callable
 
+import bcrypt
 import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 SECRET = os.environ.get("SANTE_SECRET", "dev-secret-change-me")
 ALGORITHM = "HS256"
@@ -20,11 +18,15 @@ _bearer_scheme = HTTPBearer()
 
 
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    # bcrypt operates on bytes and caps input at 72 bytes (fine for POS passwords).
+    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except ValueError:
+        return False
 
 
 def create_access_token(username: str, role: str) -> str:
